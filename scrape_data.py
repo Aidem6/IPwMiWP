@@ -11,6 +11,7 @@ from bokeh.layouts import column, row
 from bokeh.models import CustomJS, Slider
 from bokeh.plotting import ColumnDataSource, figure, show, curdoc
 from bokeh.client import push_session, pull_session
+import tools
 
 
 ch = thingspeak.Channel(202842)
@@ -56,7 +57,9 @@ source_y = plot_data['temperature_values']
 # plot.line('x', 'y', source=source, line_width=3, line_alpha=0.6)
 plot.line(source_x, source_y, legend_label="Temp.", line_width=2)
 
-slider = Slider(start=0.1, end=10, value=1, step=.1, title="Amplitude")
+slider_min, slider_max = tools.find_date_range(source_x)
+
+slider = Slider(start=slider_min, end=slider_max, value=slider_max, step=1, title="Amplitude")
 
 def slider_callback(attr, old, new):
     s = slider.value
