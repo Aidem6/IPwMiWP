@@ -3,6 +3,15 @@ import thingspeak
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
+from bokeh.plotting import figure, show
+from bokeh.models import DatetimeTickFormatter
+import numpy as np
+
+from bokeh.layouts import column, row
+from bokeh.models import CustomJS, Slider
+from bokeh.plotting import ColumnDataSource, figure, show, curdoc
+from bokeh.client import push_session, pull_session
+
 
 ch = thingspeak.Channel(202842)
 data = json.loads(ch.get({'results': 5000}))
@@ -35,13 +44,40 @@ for [index, label] in enumerate(labels):
     plot_data[label + '_dates'] = list(map(lambda x: [datetime.strptime(x[0], '%Y-%m-%dT%H:%M:%SZ')], temp_data.copy()))
     plot_data[label + '_values'] = list(map(lambda x: [float(x[1 + index])], temp_data.copy()))
 
-fig, axs = plt.subplots(8)
-plt.gcf().autofmt_xdate()
-fig.suptitle('Data from L.2.7.14BT')
-for [index, label] in enumerate(labels):
-    axs[index].plot(plot_data[label + '_dates'], plot_data[label + '_values'])
-    axs[index].set_title(label)
-    axs[index].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
-plt.subplots_adjust(hspace=1)
+plot = figure(title="Simple line example", x_axis_label="x", x_axis_type="datetime", y_axis_label="y")
 
-plt.show()
+plot.xaxis.formatter=DatetimeTickFormatter(
+    hours=["%d.%m.%y %H:%M"],
+)
+
+source_x = plot_data['temperature_dates']
+source_y = plot_data['temperature_values']
+
+# plot.line('x', 'y', source=source, line_width=3, line_alpha=0.6)
+plot.line(source_x, source_y, legend_label="Temp.", line_width=2)
+
+slider = Slider(start=0.1, end=10, value=1, step=.1, title="Amplitude")
+
+def slider_callback(attr, old, new):
+    s = slider.value
+    # x = r.source.data['x']
+    # y = []
+
+    # for value in x:
+    #     y.append((s * value) + i)
+
+    # r.source.data['y'] = y
+    # print(y)
+
+slider.on_change('value', slider_callback)
+
+layout = row(
+    plot,
+    slider,
+)
+
+curdoc().add_root(layout)
+
+session = push_session(curdoc())
+session.show(layout)
+session.loop_until_closed()
